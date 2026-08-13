@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #d4af37;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            padding: 30px;
+        }
+        h2 { color: var(--accent); margin-bottom: 20px; font-size: 24px; }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px 20px;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+            display: flex;
+            justify-content: space-between;
+        }
+        .stat-card span.label { color: var(--text-secondary); font-size: 14px; font-weight: 600;}
+        .stat-card span.value { font-size: 16px; font-weight: 800;}
+    </style>
+</head>
+<body>
+    <h2>System Monitor</h2>
+    <div class="stat-grid" id="stats">
+        Loading...
+    </div>
+    
+    <script src="dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+[
+    {
+        "id": "21e5bfd1-a4c3-4bf8-87ed-37266d118977",
+        "title": "what is 1+1?",
+        "history": [
+            {
+                "role": "user",
+                "content": "what is 1+1?"
+            },
+            {
+                "role": "assistant",
+                "content": "The answer is indeed 2."
+            }
+        ],
+        "plan": [
+            {
+                "name": "Analyze Objective",
+                "status": "green"
+            },
+            {
+                "name": "Execute Actions",
+                "status": "green"
+            },
+            {
+                "name": "Verify Results",
+                "status": "green"
+            }
+        ],
+        "thought_process": "=== INITIALIZING END OF TOKENS (FREE) ===\nObjective: what is 1+1?\n\n--- STEP 1: Analyze Objective ---\nAgent Message: A simple math question!\n\nAgent concluded step is DONE.\n\n--- STEP 2: Execute Actions ---\nAgent Message: 2\n\nAgent concluded step is DONE.\n\n--- STEP 3: Verify Results ---\nAgent Message: The answer is indeed 2\n\nAgent concluded step is DONE.\n\n=== EXECUTION COMPLETE ===\n",
+        "stats": {
+            "total_requests": 1,
+            "total_time": 12.613234519958496,
+            "pro_uses": 0,
+            "free_uses": 1,
+            "collab_uses": 0,
+            "openclaw_uses": 1
+        },
+        "settings": {
+            "pro_mode": false,
+            "collab_mode": false,
+            "double_check": false,
+            "exp_scraper": false,
+            "turbo_mode": false
+        },
+        "created_at": 1786629820.8291204
+    }
+]

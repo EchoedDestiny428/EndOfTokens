@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>End Of Tokens (Web UI)</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-panel">
+            <h1 class="brand">End Of <span>Tokens</span></h1>
+            
+            <div class="sidebar-section">
+                <h3>Navigation</h3>
+                <button class="nav-btn active" id="nav-home">Home / Tasks</button>
+                <button class="nav-btn primary-btn" id="nav-new-task">+ New Task</button>
+                <button class="nav-btn" id="nav-dashboard" style="margin-top: 10px; border: 1px solid var(--accent); color: var(--accent);">Launch Dashboard</button>
+            </div>
+
+            <div class="sidebar-section" id="task-settings-section" style="display: none;">
+                <h3>Task Settings</h3>
+                
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-pro">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Pro Mode (agy CLI)</span>
+                </div>
+                
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-collab">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Collab Consensus</span>
+                </div>
+                
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-dc">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Double Check</span>
+                </div>
+                
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-exp">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Exp. Scraper Mode</span>
+                </div>
+                
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-turbo">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label" style="color: #ef4444; font-weight: bold;">Turbo Mode (No Confirm)</span>
+                </div>
+            </div>
+            
+            <div class="status-indicator">
+                <span id="backend-status" class="status-dot green"></span>
+                Backend Connected
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- Home View -->
+            <div id="view-home" class="view active-view">
+                <header>
+                    <h2>Welcome to End Of Tokens</h2>
+                    <p>Select a task or start a new objective.</p>
+                </header>
+                <div class="tasks-grid" id="tasks-container">
+                    <!-- Tasks injected here -->
+                </div>
+            </div>
+
+            <!-- Chat View -->
+            <div id="view-chat" class="view">
+                <header class="chat-header glass-panel">
+                    <div class="title-container">
+                        <h2 id="current-task-title">Task Name</h2>
+                        <input type="text" id="rename-input" autocomplete="off">
+                        <span class="edit-icon" id="rename-btn">✎</span>
+                    </div>
+                    <div class="task-stats" id="current-task-stats">
+                        <span>Reqs: 0</span> | <span>Time: 0.0s</span>
+                    </div>
+                </header>
+                
+                <!-- Train Station Plan UI -->
+                <div class="timeline-container" id="plan-timeline">
+                    <!-- Timeline injected here -->
+                </div>
+                
+                <div class="chat-history" id="chat-history">
+                    <!-- Messages injected here -->
+                </div>
+                
+                <div class="chat-input-container">
+                    <div id="loading-indicator" class="hidden">
+                        <div class="spinner"></div>
+                        <span id="loading-text">Generating response...</span>
+                    </div>
+                    <form id="chat-form">
+                        <input type="text" id="chat-input" placeholder="Give me an objective..." autocomplete="off">
+                        <button type="submit" id="send-btn" class="primary-btn">Execute</button>
+                    </form>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    
+    <!-- Context Menu for Task Cards -->
+    <div id="context-menu" class="context-menu hidden">
+        <ul>
+            <li id="ctx-rename">Rename Task</li>
+            <li id="ctx-delete">Delete Task</li>
+        </ul>
+    </div>
+    
+    <!-- Approval Modal -->
+    <div id="approval-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 style="color: var(--accent); margin-bottom: 10px;">Permission Required</h3>
+            <p style="font-size: 14px; margin-bottom: 8px;">The agent wants to run the following command:</p>
+            <div class="code-box" id="approval-command"></div>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-top: 12px; margin-bottom: 8px;">Reason provided by AI:</p>
+            <div class="code-box reason-box" id="approval-reason"></div>
+            
+            <div class="modal-actions" style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="btn-deny" class="nav-btn" style="width: auto; margin: 0;">Deny</button>
+                <button id="btn-approve" class="primary-btn" style="padding: 10px 24px; border-radius: 8px;">Approve</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
