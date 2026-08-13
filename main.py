@@ -65,7 +65,7 @@ class Api:
         )
         return True
 
-    def generate_response(self, session_id: str, prompt: str, mode: str, use_dc: bool, use_collab: bool, use_exp: bool):
+    def generate_response(self, session_id: str, prompt: str, mode: str):
         session = session_manager.get_session(session_id)
         if not session:
             raise Exception("Session not found")
@@ -82,16 +82,13 @@ class Api:
             session_id=session_id,
             prompt=prompt,
             mode=mode,
-            use_double_check=use_dc,
-            use_collab=use_collab,
-            use_experimental_scraper=use_exp,
             api=self
         )
         
         elapsed_time = time.time() - start_time
 
         session.add_message("assistant", response_text)
-        session.update_stats(mode, use_collab, True, elapsed_time)
+        session.update_stats(mode, elapsed_time)
         session_manager.save()
 
         return {

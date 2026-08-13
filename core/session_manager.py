@@ -31,17 +31,14 @@ class TaskSession:
     def add_message(self, role: str, content: str):
         self.history.append({"role": role, "content": content})
 
-    def update_stats(self, mode: str, use_collab: bool, use_openclaw: bool, elapsed_time: float):
+    def update_stats(self, mode: str, elapsed_time: float):
         self.stats["total_requests"] += 1
         self.stats["total_time"] += elapsed_time
         if mode == "pro":
             self.stats["pro_uses"] += 1
         else:
             self.stats["free_uses"] += 1
-            if use_collab:
-                self.stats["collab_uses"] += 1
-            if use_openclaw:
-                self.stats["openclaw_uses"] += 1
+        self.stats["openclaw_uses"] += 1
 
     def update_settings(self, settings_dict: Dict):
         self.settings.update(settings_dict)

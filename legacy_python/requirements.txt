@@ -1,3 +1,0 @@
-customtkinter
-selenium
-webdriver-manager

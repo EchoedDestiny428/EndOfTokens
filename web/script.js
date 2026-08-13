@@ -22,9 +22,6 @@ const renameBtn = document.getElementById('rename-btn');
 
 // Toggles
 const tglPro = document.getElementById('toggle-pro');
-const tglCollab = document.getElementById('toggle-collab');
-const tglDC = document.getElementById('toggle-dc');
-const tglExp = document.getElementById('toggle-exp');
 const tglTurbo = document.getElementById('toggle-turbo');
 
 const approvalModal = document.getElementById('approval-modal');
@@ -122,15 +119,7 @@ function setupRenaming() {
 }
 
 function updateToggleState() {
-    if (tglPro.checked) {
-        tglCollab.checked = false;
-        tglCollab.disabled = true;
-        tglExp.checked = false;
-        tglExp.disabled = true;
-    } else {
-        tglCollab.disabled = false;
-        tglExp.disabled = false;
-    }
+    // Only handling Pro vs Auto now, others were removed
 }
 
 function setupToggles() {
@@ -139,17 +128,11 @@ function setupToggles() {
         updateToggleState();
         await pywebview.api.update_session_settings(currentSessionId, {
             "pro_mode": tglPro.checked,
-            "collab_mode": tglCollab.checked,
-            "double_check": tglDC.checked,
-            "exp_scraper": tglExp.checked,
             "turbo_mode": tglTurbo.checked
         });
     };
 
     tglPro.addEventListener('change', saveSettings);
-    tglCollab.addEventListener('change', saveSettings);
-    tglDC.addEventListener('change', saveSettings);
-    tglExp.addEventListener('change', saveSettings);
     tglTurbo.addEventListener('change', saveSettings);
 }
 
@@ -263,9 +246,6 @@ async function openSession(session) {
     taskSettingsSection.style.display = 'block';
     
     tglPro.checked = session.settings.pro_mode || false;
-    tglCollab.checked = session.settings.collab_mode || false;
-    tglDC.checked = session.settings.double_check || false;
-    tglExp.checked = session.settings.exp_scraper || false;
     tglTurbo.checked = session.settings.turbo_mode || false;
     updateToggleState();
 
@@ -322,8 +302,7 @@ async function sendPromptToBackend(sessionId, prompt) {
     try {
         const response = await pywebview.api.generate_response(
             sessionId, prompt,
-            tglPro.checked ? "pro" : "free",
-            tglDC.checked, tglCollab.checked, tglExp.checked
+            tglPro.checked ? "pro" : "free"
         );
         
         // Before appending the new message, check if there's a new thought process to append
