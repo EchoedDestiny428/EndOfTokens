@@ -30,6 +30,12 @@ const approvalReason = document.getElementById('approval-reason');
 const btnApprove = document.getElementById('btn-approve');
 const btnDeny = document.getElementById('btn-deny');
 
+const deleteModal = document.getElementById('delete-modal');
+const deleteModalText = document.getElementById('delete-modal-text');
+const btnCancelDelete = document.getElementById('btn-cancel-delete');
+const btnConfirmDelete = document.getElementById('btn-confirm-delete');
+let sessionToDelete = null;
+
 // Exposed to Python via evaluate_js
 window.showApprovalModal = function(command, reason) {
     approvalCommand.innerText = command;
@@ -68,11 +74,24 @@ document.getElementById('ctx-rename').addEventListener('click', async () => {
     }
 });
 
-document.getElementById('ctx-delete').addEventListener('click', async () => {
+document.getElementById('ctx-delete').addEventListener('click', () => {
     if (!contextSession) return;
-    if (confirm(`Are you sure you want to delete '${contextSession.title}'?`)) {
-        await pywebview.api.delete_session(contextSession.id);
+    sessionToDelete = contextSession;
+    deleteModalText.innerText = `Are you sure you want to delete '${contextSession.title}'?`;
+    deleteModal.classList.remove('hidden');
+});
+
+btnCancelDelete.addEventListener('click', () => {
+    deleteModal.classList.add('hidden');
+    sessionToDelete = null;
+});
+
+btnConfirmDelete.addEventListener('click', async () => {
+    if (sessionToDelete) {
+        deleteModal.classList.add('hidden');
+        await pywebview.api.delete_session(sessionToDelete.id);
         loadTasks();
+        sessionToDelete = null;
     }
 });
 
