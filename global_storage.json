@@ -1,0 +1,8 @@
+{
+    "mathematics": {
+        "basic_arithmetic": "+ operator returns the sum of two numbers."
+    },
+    "system_settings": {
+        "default_browser": "chromium"
+    }
+}

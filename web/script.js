@@ -10,6 +10,7 @@ const chatHistory = document.getElementById('chat-history');
 const chatForm = document.getElementById('chat-form');
 const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
+const stopBtn = document.getElementById('stop-btn');
 const loadingIndicator = document.getElementById('loading-indicator');
 const loadingText = document.getElementById('loading-text');
 const taskSettingsSection = document.getElementById('task-settings-section');
@@ -23,6 +24,7 @@ const renameBtn = document.getElementById('rename-btn');
 // Toggles
 const tglPro = document.getElementById('toggle-pro');
 const tglTurbo = document.getElementById('toggle-turbo');
+const tglPersistence = document.getElementById('toggle-persistence');
 
 const approvalModal = document.getElementById('approval-modal');
 const approvalCommand = document.getElementById('approval-command');
@@ -111,6 +113,12 @@ function initApp() {
         
         await sendPromptToBackend(currentSessionId, prompt);
     });
+    
+    stopBtn.addEventListener('click', async () => {
+        await pywebview.api.stop_execution();
+        stopBtn.disabled = true;
+        stopBtn.querySelector('span').innerText = "Stopping...";
+    });
 }
 
 function setupRenaming() {
@@ -147,12 +155,14 @@ function setupToggles() {
         updateToggleState();
         await pywebview.api.update_session_settings(currentSessionId, {
             "pro_mode": tglPro.checked,
-            "turbo_mode": tglTurbo.checked
+            "turbo_mode": tglTurbo.checked,
+            "persistence_mode": tglPersistence.checked
         });
     };
 
     tglPro.addEventListener('change', saveSettings);
     tglTurbo.addEventListener('change', saveSettings);
+    tglPersistence.addEventListener('change', saveSettings);
 }
 
 function setupRouting() {
@@ -266,6 +276,7 @@ async function openSession(session) {
     
     tglPro.checked = session.settings.pro_mode || false;
     tglTurbo.checked = session.settings.turbo_mode || false;
+    tglPersistence.checked = session.settings.persistence_mode || false;
     updateToggleState();
 
     chatHistory.innerHTML = '';
@@ -302,19 +313,32 @@ function appendMessage(role, content) {
 let pollingInterval = null;
 
 async function sendPromptToBackend(sessionId, prompt) {
-    sendBtn.disabled = true;
+    sendBtn.style.display = 'none';
+    stopBtn.style.display = 'flex';
+    stopBtn.disabled = false;
+    stopBtn.querySelector('span').innerText = "Stop";
     chatInput.disabled = true;
     loadingIndicator.classList.remove('hidden');
     
     // Instantly reset the Train Station visualizer for the new request
     renderTimelineFull([]);
     
+    // Create the thought box immediately for real-time streaming
+    const thoughtBox = document.createElement('div');
+    thoughtBox.className = 'thought-process-box';
+    chatHistory.appendChild(thoughtBox);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+    
     loadingText.innerText = "Agent Active: Planning & Executing...";
-    // Start polling for timeline updates unconditionally since End Of Tokens is default
+    // Start polling for timeline and thought process updates
     pollingInterval = setInterval(async () => {
         const currentSession = await pywebview.api.get_session(sessionId);
-        if (currentSession && currentSession.plan) {
-            renderTimelineFull(currentSession.plan);
+        if (currentSession) {
+            if (currentSession.plan) renderTimelineFull(currentSession.plan);
+            if (currentSession.thought_process) {
+                thoughtBox.innerText = currentSession.thought_process;
+                thoughtBox.scrollTop = thoughtBox.scrollHeight;
+            }
         }
     }, 1000);
 
@@ -324,12 +348,11 @@ async function sendPromptToBackend(sessionId, prompt) {
             tglPro.checked ? "pro" : "free"
         );
         
-        // Before appending the new message, check if there's a new thought process to append
+        // Before appending the new message, ensure final thought process is captured
         if (response.session && response.session.thought_process) {
-            const thoughtDiv = document.createElement('div');
-            thoughtDiv.className = 'thought-process-box';
-            thoughtDiv.innerText = response.session.thought_process;
-            chatHistory.appendChild(thoughtDiv);
+            thoughtBox.innerText = response.session.thought_process;
+        } else {
+            thoughtBox.remove();
         }
 
         appendMessage('assistant', response.content);
@@ -341,7 +364,8 @@ async function sendPromptToBackend(sessionId, prompt) {
         appendMessage('assistant', `[Error]: ${err}`);
     } finally {
         if (pollingInterval) clearInterval(pollingInterval);
-        sendBtn.disabled = false;
+        stopBtn.style.display = 'none';
+        sendBtn.style.display = 'inline-block';
         chatInput.disabled = false;
         loadingIndicator.classList.add('hidden');
         chatInput.focus();

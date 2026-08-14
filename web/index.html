@@ -38,6 +38,14 @@
                     </label>
                     <span class="toggle-label" style="color: #ef4444; font-weight: bold;">Turbo Mode (No Confirm)</span>
                 </div>
+                
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-persistence">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label" style="color: #d4af37; font-weight: bold;">Persistence (Never Stop)</span>
+                </div>
             </div>
             
             <div class="status-indicator">
@@ -89,6 +97,10 @@
                     </div>
                     <form id="chat-form">
                         <input type="text" id="chat-input" placeholder="Give me an objective..." autocomplete="off">
+                        <button type="button" id="stop-btn" style="display: none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>
+                            <span>Stop</span>
+                        </button>
                         <button type="submit" id="send-btn" class="primary-btn">Execute</button>
                     </form>
                 </div>

@@ -10,6 +10,7 @@ class TaskSession:
         self.title = title
         self.history: List[Dict] = []
         self.plan: List[Dict] = []
+        self.local_storage: Dict = {}
         self.thought_process: str = ""
         self.stats = {
             "total_requests": 0,
@@ -49,6 +50,7 @@ class TaskSession:
             "title": self.title,
             "history": self.history,
             "plan": self.plan,
+            "local_storage": self.local_storage,
             "thought_process": self.thought_process,
             "stats": self.stats,
             "settings": self.settings,
@@ -62,6 +64,7 @@ class TaskSession:
         session.title = data.get("title", "New Task")
         session.history = data.get("history", [])
         session.plan = data.get("plan", [])
+        session.local_storage = data.get("local_storage", {})
         session.thought_process = data.get("thought_process", "")
         session.stats = data.get("stats", session.stats)
         session.settings = data.get("settings", session.settings)
@@ -115,3 +118,41 @@ class SessionManager:
         return [s.to_dict() for s in sorted(self.sessions.values(), key=lambda x: x.created_at, reverse=True)]
 
 session_manager = SessionManager()
+
+class GlobalStorageManager:
+    def __init__(self, db_path="global_storage.json"):
+        self.db_path = db_path
+        self.storage: Dict[str, Dict[str, str]] = {}
+        self.load()
+
+    def load(self):
+        if os.path.exists(self.db_path):
+            try:
+                with open(self.db_path, "r", encoding="utf-8") as f:
+                    self.storage = json.load(f)
+            except Exception as e:
+                print(f"Failed to load global storage: {e}")
+
+    def save(self):
+        try:
+            with open(self.db_path, "w", encoding="utf-8") as f:
+                json.dump(self.storage, f, indent=4)
+        except Exception as e:
+            print(f"Failed to save global storage: {e}")
+
+    def set(self, category: str, key: str, value: str):
+        if category not in self.storage:
+            self.storage[category] = {}
+        self.storage[category][key] = value
+        self.save()
+
+    def get(self, category: str, key: str) -> str:
+        return self.storage.get(category, {}).get(key, None)
+
+    def get_toc(self) -> Dict[str, List[str]]:
+        toc = {}
+        for category, keys in self.storage.items():
+            toc[category] = list(keys.keys())
+        return toc
+
+global_storage_manager = GlobalStorageManager()

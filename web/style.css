@@ -467,6 +467,36 @@ header p { color: var(--text-secondary); margin-bottom: 40px; font-size: 15px;}
 #send-btn:active { transform: translateY(0); }
 #send-btn:disabled { background: #222; color: #555; cursor: not-allowed; box-shadow: none; transform: none;}
 
+#stop-btn {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 12px;
+    padding: 0 24px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+#stop-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+    transform: translateY(-2px);
+}
+#stop-btn:active {
+    transform: translateY(0);
+}
+#stop-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 .hidden { display: none !important; }
 #loading-indicator {
     position: absolute;

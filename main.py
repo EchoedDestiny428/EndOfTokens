@@ -12,6 +12,7 @@ class Api:
         self.controller = Controller()
         self.approval_event = threading.Event()
         self.approval_result = False
+        self.abort_flag = False
 
     def request_approval(self, command: str, reason: str) -> bool:
         self.approval_event.clear()
@@ -25,6 +26,11 @@ class Api:
     def resolve_approval(self, approved: bool):
         self.approval_result = approved
         self.approval_event.set()
+
+    def stop_execution(self):
+        self.abort_flag = True
+        self.resolve_approval(False)
+        return True
 
     def create_session(self, title: str):
         session = session_manager.create_session(title)
@@ -66,6 +72,7 @@ class Api:
         return True
 
     def generate_response(self, session_id: str, prompt: str, mode: str):
+        self.abort_flag = False
         session = session_manager.get_session(session_id)
         if not session:
             raise Exception("Session not found")
