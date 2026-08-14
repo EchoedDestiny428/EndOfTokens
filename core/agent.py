@@ -175,9 +175,7 @@ class OpenClawAgent:
             f"Execution Context:\n{chr(10).join(execution_history)}"
         )
         
-        if mode == "pro":
-            final_answer = controller._run_agy(system_persona, double_check=False)
-        else:
-            final_answer = controller._run_ollama(system_persona, "llama3.1")
-            
+        final_answer = controller._run_ollama(system_persona, "llama3.1")
+        
+        self.log_thought("=== EXECUTION COMPLETE ===")
         return final_answer
