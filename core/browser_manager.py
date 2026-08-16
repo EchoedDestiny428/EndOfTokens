@@ -143,17 +143,35 @@ class BrowserManager:
                 return f"HTML content:\n{html}"
                 
             elif action == "close":
-                if self.browser:
-                    self.browser.close()
-                    self.playwright.stop()
-                    self.browser = None
-                    self.playwright = None
-                    self.page = None
-                    return "Browser closed."
-                return "Browser was not open."
+                return self.close()
             else:
                 return f"Error: Unknown browser action '{action}'."
         except Exception as e:
             return f"Browser error during '{action}': {str(e)}"
+
+    def close(self) -> str:
+        try:
+            if self.page:
+                try:
+                    self.page.close()
+                except Exception:
+                    pass
+            if self.browser:
+                try:
+                    self.browser.close()
+                except Exception:
+                    pass
+            if self.playwright:
+                try:
+                    self.playwright.stop()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        finally:
+            self.page = None
+            self.browser = None
+            self.playwright = None
+        return "Browser closed."
 
 browser_manager = BrowserManager()

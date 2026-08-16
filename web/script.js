@@ -24,6 +24,7 @@ const renameBtn = document.getElementById('rename-btn');
 // Toggles
 const tglPro = document.getElementById('toggle-pro');
 const tglTurbo = document.getElementById('toggle-turbo');
+const tglDoubleCheck = document.getElementById('toggle-double-check');
 const tglPersistence = document.getElementById('toggle-persistence');
 
 const approvalModal = document.getElementById('approval-modal');
@@ -156,12 +157,14 @@ function setupToggles() {
         await pywebview.api.update_session_settings(currentSessionId, {
             "pro_mode": tglPro.checked,
             "turbo_mode": tglTurbo.checked,
+            "double_check": tglDoubleCheck.checked,
             "persistence_mode": tglPersistence.checked
         });
     };
 
     tglPro.addEventListener('change', saveSettings);
     tglTurbo.addEventListener('change', saveSettings);
+    tglDoubleCheck.addEventListener('change', saveSettings);
     tglPersistence.addEventListener('change', saveSettings);
 }
 
@@ -276,10 +279,14 @@ async function openSession(session) {
     
     tglPro.checked = session.settings.pro_mode || false;
     tglTurbo.checked = session.settings.turbo_mode || false;
+    tglDoubleCheck.checked = session.settings.double_check || false;
     tglPersistence.checked = session.settings.persistence_mode || false;
     updateToggleState();
 
     chatHistory.innerHTML = '';
+    
+    // Always render this session's unique train timeline
+    renderTimelineFull(session.plan || []);
     
     // Add thought process box if it exists
     if (session.thought_process && session.thought_process.trim() !== "") {

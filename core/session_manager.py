@@ -25,7 +25,8 @@ class TaskSession:
             "collab_mode": False,
             "double_check": False,
             "exp_scraper": False,
-            "turbo_mode": False
+            "turbo_mode": False,
+            "persistence_mode": False
         }
         self.created_at = time.time()
 
