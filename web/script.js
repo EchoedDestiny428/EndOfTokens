@@ -33,6 +33,14 @@ const approvalReason = document.getElementById('approval-reason');
 const btnApprove = document.getElementById('btn-approve');
 const btnDeny = document.getElementById('btn-deny');
 
+const questionModal = document.getElementById('question-modal');
+const questionText = document.getElementById('question-text');
+const questionReason = document.getElementById('question-reason');
+const questionReasonContainer = document.getElementById('question-reason-container');
+const questionOptions = document.getElementById('question-options');
+const questionInput = document.getElementById('question-input');
+const btnSubmitAnswer = document.getElementById('btn-submit-answer');
+
 const deleteModal = document.getElementById('delete-modal');
 const deleteModalText = document.getElementById('delete-modal-text');
 const btnCancelDelete = document.getElementById('btn-cancel-delete');
@@ -54,6 +62,54 @@ btnApprove.addEventListener('click', () => {
 btnDeny.addEventListener('click', () => {
     approvalModal.classList.add('hidden');
     pywebview.api.resolve_approval(false);
+});
+
+// Interactive Question Modal exposed to Python
+window.showQuestionModal = function(question, reason, options) {
+    questionText.innerText = question;
+    if (reason && reason.trim()) {
+        questionReason.innerText = reason;
+        questionReasonContainer.style.display = 'block';
+    } else {
+        questionReasonContainer.style.display = 'none';
+    }
+    
+    questionOptions.innerHTML = '';
+    if (Array.isArray(options) && options.length > 0) {
+        options.forEach(opt => {
+            const pill = document.createElement('button');
+            pill.className = 'option-pill';
+            pill.type = 'button';
+            pill.innerText = opt;
+            pill.onclick = () => {
+                questionInput.value = opt;
+                submitUserAnswer();
+            };
+            questionOptions.appendChild(pill);
+        });
+        questionOptions.style.display = 'flex';
+    } else {
+        questionOptions.style.display = 'none';
+    }
+    
+    questionInput.value = '';
+    questionModal.classList.remove('hidden');
+    setTimeout(() => questionInput.focus(), 80);
+};
+
+function submitUserAnswer() {
+    const answer = questionInput.value.trim();
+    if (!answer) return;
+    questionModal.classList.add('hidden');
+    pywebview.api.resolve_user_input(answer);
+}
+
+btnSubmitAnswer.addEventListener('click', submitUserAnswer);
+questionInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitUserAnswer();
+    }
 });
 
 window.addEventListener('pywebviewready', () => {

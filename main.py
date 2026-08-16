@@ -12,6 +12,8 @@ class Api:
         self.controller = Controller()
         self.approval_event = threading.Event()
         self.approval_result = False
+        self.question_event = threading.Event()
+        self.question_answer = ""
         self.abort_flag = False
 
     def request_approval(self, command: str, reason: str) -> bool:
@@ -27,9 +29,24 @@ class Api:
         self.approval_result = approved
         self.approval_event.set()
 
+    def request_user_input(self, question: str, reason: str = "", options: list = None) -> str:
+        self.question_event.clear()
+        self.question_answer = ""
+        q_escaped = json.dumps(question)
+        r_escaped = json.dumps(reason)
+        opt_escaped = json.dumps(options if options else [])
+        webview.windows[0].evaluate_js(f'showQuestionModal({q_escaped}, {r_escaped}, {opt_escaped})')
+        self.question_event.wait()
+        return self.question_answer
+
+    def resolve_user_input(self, answer: str):
+        self.question_answer = str(answer)
+        self.question_event.set()
+
     def stop_execution(self):
         self.abort_flag = True
         self.resolve_approval(False)
+        self.resolve_user_input("Task stopped by user.")
         return True
 
     def create_session(self, title: str):

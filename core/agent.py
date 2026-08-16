@@ -176,12 +176,13 @@ class OpenClawAgent:
                         "=== ACTIONS SCHEMA ===\n"
                         "Output exactly ONE JSON object (no comments, strictly valid JSON):\n"
                         "{\n"
-                        "  \"action\": \"<finish_step | browser_action | shell_exec | thought | store_memory | retrieve_memory | fail_step>\",\n"
+                        "  \"action\": \"<finish_step | browser_action | shell_exec | thought | store_memory | retrieve_memory | ask_user | fail_step>\",\n"
                         "  \"args\": {<action_specific_args>},\n"
                         "  \"reason\": \"<why you are doing this>\"\n"
                         "}\n\n"
                         "Action Reference:\n"
                         f"- finish_step: Mark '{step['name']}' as DONE. args: {{\"message\": \"<summary or direct answer>\"}}\n"
+                        "- ask_user: Ask the user a clarifying question or request user decision/choice when information is ambiguous, missing, or requires user guidance. args: {\"question\": \"<concise question>\", \"options\": [\"Choice A\", \"Choice B\"] (optional list of quick options)}\n"
                         "- browser_action: Control browser (ONLY use if web searching/browsing is explicitly needed):\n"
                         "    * open_url: args: {\"command\": \"open_url\", \"url\": \"https://...\"}\n"
                         "    * type: args: {\"command\": \"type\", \"text\": \"...\"} (Automatically submits and presses Enter!)\n"
@@ -413,6 +414,24 @@ class OpenClawAgent:
                         last_action_key = action_key
                         self.log_thought(f"> {msg}\n")
                         execution_history.append(f"[Storage retrieval]: {msg}\n[SYSTEM: Memory retrieved! Now proceed to finish the step or execute next required action.]")
+                        
+                    elif action_type == "ask_user":
+                        question = args.get("question", "")
+                        options = args.get("options", [])
+                        if not question:
+                            self.log_thought("⚠️ Missing question in ask_user action.")
+                            continue
+                            
+                        self.log_thought(f"❓ [Agent Asking User]: {question}")
+                        if options and isinstance(options, list):
+                            self.log_thought(f"   Choices: {options}")
+                            
+                        user_answer = api.request_user_input(question, reason, options)
+                        if api.abort_flag: break
+                        
+                        self.log_thought(f"👤 [User Response]: {user_answer}\n")
+                        last_action_key = None # Allow next step without repeated block
+                        execution_history.append(f"[Agent Question to User]: {question}\n[User Provided Answer]: {user_answer}\n[SYSTEM DIRECTIVE: The user answered: '{user_answer}'. Now proceed with the task using this information!]")
                         
                     elif action_type == "shell_exec":
                         command = args.get("command", "")
