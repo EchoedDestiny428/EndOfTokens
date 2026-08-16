@@ -48,20 +48,29 @@ class OpenClawAgent:
         self.log_thought(f"Objective: {prompt}\n")
         
         # 1. PLAN
+        history_summary = []
+        if self.session.history:
+            for msg in self.session.history[-6:]:
+                role_label = "User" if msg.get("role") == "user" else "Assistant"
+                content_preview = msg.get("content", "").replace("\n", " ")[:150]
+                history_summary.append(f"{role_label}: {content_preview}")
+        history_str = "\n".join(history_summary) if history_summary else "No prior history in this session."
+        
         plan_prompt = (
-            "You are 'End Of Tokens', an automated web research and IT automation planner.\n"
-            "You are planning automated browser searches to extract publicly available web information. You are NOT giving financial, medical, or legal advice.\n"
-            "Break the user's objective into distinct, sequential, simple milestone steps (2 to 4 steps max).\n"
-            "Ensure the plan covers the ENTIRE objective from start to finish, including the final extraction, saving, or answering step.\n"
-            "Each step must be a concise, single action or goal. For example:\n"
-            "[\n"
-            "  {\"name\": \"Search Google for 'best budget pc builds'\"},\n"
-            "  {\"name\": \"Click on the first search result link\"},\n"
-            "  {\"name\": \"Extract and summarize page content\"}\n"
-            "]\n\n"
-            "CRITICAL: If the user request is a general question or conversation (no browser/system actions needed), output: [{\"name\": \"Directly answer user query\"}].\n"
-            "Otherwise, output ONLY the raw JSON array of step objects.\n\n"
-            f"User Objective: {prompt}"
+            "You are 'End Of Tokens', an intelligent task planner and IT automation agent.\n"
+            "Determine the most efficient, minimal plan to fulfill the user's objective based on the current session context.\n\n"
+            "CRITICAL PLANNING RULES:\n"
+            "1. NEVER create meta-steps about inspecting or reviewing history (e.g. NEVER output 'Review conversation history', 'Understand the goal', or 'Check previous messages'). As the planner, YOU must directly resolve the user's intent from the history and output the concrete, actionable steps.\n"
+            "2. If the user prompt is a retry or follow-up (e.g. 'try again (for the devpost parsing)'), resolve the actual target website or task from the context and generate the real workflow (e.g. Open Devpost, extract project details, take notes).\n"
+            "3. If the request is conversational or can be answered directly from knowledge/history, output: [{\"name\": \"Process request and directly respond\"}].\n"
+            "4. If a web search or scraping workflow is required, output a tailored 2-3 step plan with concrete targets:\n"
+            "   [\n"
+            "     {\"name\": \"Open <target URL or search online for target>\"},\n"
+            "     {\"name\": \"Extract relevant content and take notes\"}\n"
+            "   ]\n\n"
+            f"Recent Conversation History:\n{history_str}\n\n"
+            f"Current User Request: {prompt}\n\n"
+            "Output strictly a raw JSON array of step objects (no markdown comments)."
         )
         try:
             plan_response = controller._run_ollama(plan_prompt, "llama3.1")
@@ -105,11 +114,16 @@ class OpenClawAgent:
             session_manager.save()
         except Exception:
             clean_query = prompt.replace("\"", "").replace("'", "")[:40].strip()
-            self.session.plan = [
-                {"name": f"Search online for '{clean_query}'", "status": "grey"},
-                {"name": f"Open top search result for '{clean_query}'", "status": "grey"},
-                {"name": "Extract and summarize findings", "status": "grey"}
-            ]
+            # If it's a short command/conversation, don't spam google
+            if len(clean_query.split()) <= 3 and any(w in clean_query.lower() for w in ["try again", "retry", "hello", "hi", "help", "explain", "what", "how"]):
+                self.session.plan = [
+                    {"name": "Process request and review session context", "status": "grey"}
+                ]
+            else:
+                self.session.plan = [
+                    {"name": f"Search online for '{clean_query}'", "status": "grey"},
+                    {"name": "Extract relevant information and take notes", "status": "grey"}
+                ]
         
         session_manager.save()
         turbo_mode = self.session.settings.get("turbo_mode", False)
@@ -167,8 +181,8 @@ class OpenClawAgent:
                         "  \"reason\": \"<why you are doing this>\"\n"
                         "}\n\n"
                         "Action Reference:\n"
-                        f"- finish_step: Mark '{step['name']}' as DONE. args: {{\"message\": \"<summary>\"}}\n"
-                        "- browser_action: Control browser. args must include 'command':\n"
+                        f"- finish_step: Mark '{step['name']}' as DONE. args: {{\"message\": \"<summary or direct answer>\"}}\n"
+                        "- browser_action: Control browser (ONLY use if web searching/browsing is explicitly needed):\n"
                         "    * open_url: args: {\"command\": \"open_url\", \"url\": \"https://...\"}\n"
                         "    * type: args: {\"command\": \"type\", \"text\": \"...\"} (Automatically submits and presses Enter!)\n"
                         "    * click: args: {\"command\": \"click\", \"selector\": \"...\"} (For search results, use 'h3' or 'a:has(h3)')\n"
@@ -177,12 +191,15 @@ class OpenClawAgent:
                         "    * get_html: args: {\"command\": \"get_html\"}\n"
                         "    * close: args: {\"command\": \"close\"}\n"
                         "- shell_exec: Run a CMD command. args: {\"command\": \"...\"}.\n"
-                        "- store_memory: Save to knowledge base. args: {\"scope\": \"global\"|\"local\", \"category\": \"...\", \"key\": \"...\", \"value\": \"...\"}\n"
+                        "- store_memory: Save information to memory. args: {\"scope\": \"global\"|\"local\", \"category\": \"...\", \"key\": \"...\", \"value\": \"...\"}\n"
+                        "    * scope: \"global\" -> STRICTLY for user's PC environment, installed apps, system paths, and user preferences/personalization. NEVER store web articles or task findings here.\n"
+                        "    * scope: \"local\" -> For all task-specific data, research notes, product comparisons, and task findings.\n"
                         "- retrieve_memory: Read memory. args: {\"scope\": \"global\"|\"local\", \"category\": \"...\", \"key\": \"...\"}\n"
                         "- thought: Internal reasoning. args: {\"message\": \"...\"}\n\n"
-                        "=== STORAGE ===\n"
-                        f"Global TOC: {global_toc_str}\n"
-                        f"Local Storage: {local_storage_str}\n\n"
+                        "=== SESSION MEMORY & STORAGE ===\n"
+                        f"Compacted Session Notes: {json.dumps(self.session.local_storage.get('notes', []), indent=2)}\n"
+                        f"Global User Profile: {global_toc_str}\n"
+                        f"Local Task Storage: {local_storage_str}\n\n"
                         f"Execution History so far:\n{history_text}"
                     )
                     
@@ -237,18 +254,18 @@ class OpenClawAgent:
                         
                     self.log_thought(f"Action: {action_type} | Reason: {reason}")
                     
-                    # Check for repeated identical actions that already succeeded
+                    # Check for repeated identical actions
                     action_key = f"{action_type}:{json.dumps(args, sort_keys=True)}"
-                    if action_key == last_action_key and action_type in ["browser_action", "shell_exec"]:
+                    if action_key == last_action_key:
                         repeat_count += 1
                         if repeat_count >= 2:
-                            self.log_thought(f"⚠️ Action '{action_type}' was already completed successfully. Auto-finishing step '{step['name']}'.\n")
+                            self.log_thought(f"⚠️ Action '{action_type}' was already executed. Auto-finishing step '{step['name']}'.\n")
                             execution_history.append(f"[Agent Completed Step]: Step '{step['name']}' accomplished.")
                             step_completed = True
                             break
                         else:
-                            self.log_thought(f"⚠️ Action was already executed. Directing agent to finalize step.\n")
-                            execution_history.append(f"[SYSTEM WARNING]: You already executed this exact action successfully! DO NOT repeat it. If '{step['name']}' is done, output: {{\"action\": \"finish_step\", \"args\": {{\"message\": \"done\"}}}}.")
+                            self.log_thought("⚠️ Action was already executed. Directing agent to finalize step.\n")
+                            execution_history.append(f"[SYSTEM WARNING]: You already executed this exact action successfully! DO NOT repeat it. If '{step['name']}' is done, you MUST output: {{\"action\": \"finish_step\", \"args\": {{\"message\": \"done\"}}}}.")
                             continue
                     
                     if action_type == "finish_step":
@@ -344,26 +361,39 @@ class OpenClawAgent:
                         
                     elif action_type == "thought":
                         msg = args.get("message", "")
+                        last_action_key = action_key
                         self.log_thought(f"> Thought: {msg}\n")
-                        execution_history.append(f"[Thought]: {msg}")
+                        execution_history.append(f"[Thought]: {msg}\n[SYSTEM: If '{step['name']}' is met, output: {{\"action\": \"finish_step\", \"args\": {{\"message\": \"done\"}}}}]")
                         
                     elif action_type == "store_memory":
                         scope = args.get("scope", "local")
                         cat = args.get("category", "General")
                         key = args.get("key", "")
                         val = args.get("value", "")
+                        
+                        # Validate Global vs Local storage purpose
+                        # Global is ONLY for user PC personalization, system settings, installed apps, user preferences
+                        allowed_global_keywords = ["user", "system", "setting", "preference", "app", "installed", "config", "hardware", "profile", "path", "device", "browser"]
+                        is_global_profile = any(k in cat.lower() or k in key.lower() for k in allowed_global_keywords)
+                        
+                        if scope == "global" and not is_global_profile:
+                            # Auto-redirect task data to local storage so global storage stays clean
+                            scope = "local"
+                            self.log_thought("ℹ️ [Storage Routing]: Redirected task research data to Local Storage (Global Storage is reserved for PC personalization & preferences).")
+                        
                         if scope == "global":
                             global_storage_manager.set(cat, key, val)
-                            msg = f"Saved to Global Storage [{cat} -> {key}]"
+                            msg = f"Saved to Global Personalization Profile [{cat} -> {key}]"
                         else:
                             if cat not in self.session.local_storage:
                                 self.session.local_storage[cat] = {}
                             self.session.local_storage[cat][key] = val
                             session_manager.save()
-                            msg = f"Saved to Local Storage [{cat} -> {key}]"
+                            msg = f"Saved to Task Local Storage [{cat} -> {key}]"
                         
+                        last_action_key = action_key
                         self.log_thought(f"> {msg}\n")
-                        execution_history.append(f"[Storage]: {msg}")
+                        execution_history.append(f"[Storage]: {msg}\n[SYSTEM: Memory stored! If '{step['name']}' is met, output: {{\"action\": \"finish_step\", \"args\": {{\"message\": \"done\"}}}}]")
                         
                     elif action_type == "retrieve_memory":
                         scope = args.get("scope", "local")
@@ -380,8 +410,9 @@ class OpenClawAgent:
                         else:
                             msg = f"Retrieved [{cat} -> {key}]: Not Found."
                         
+                        last_action_key = action_key
                         self.log_thought(f"> {msg}\n")
-                        execution_history.append(f"[Storage retrieval]: {msg}")
+                        execution_history.append(f"[Storage retrieval]: {msg}\n[SYSTEM: Memory retrieved! Now proceed to finish the step or execute next required action.]")
                         
                     elif action_type == "shell_exec":
                         command = args.get("command", "")
@@ -468,8 +499,30 @@ class OpenClawAgent:
                                     step_hint = f"[SYSTEM DIRECTIVE: Target page opened! Step '{step['name']}' is COMPLETE. You MUST output {{\"action\": \"finish_step\", \"args\": {{\"message\": \"Page opened\"}}}} next!]"
                                 elif command == "click" and "click" in sname:
                                     step_hint = f"[SYSTEM DIRECTIVE: Link clicked! Step '{step['name']}' is COMPLETE. You MUST output {{\"action\": \"finish_step\", \"args\": {{\"message\": \"Clicked link\"}}}} next!]"
-                                elif command == "extract_text" and any(w in sname for w in ["extract", "read", "summarize", "content"]):
+                                elif command == "extract_text" and any(w in sname for w in ["extract", "read", "summarize", "content", "note"]):
                                     step_hint = f"[SYSTEM DIRECTIVE: Content extracted! Step '{step['name']}' is COMPLETE. You MUST output {{\"action\": \"finish_step\", \"args\": {{\"message\": \"Extracted content successfully\"}}}} next!]"
+                                    # Auto-take and compact session notes
+                                    try:
+                                        raw_text = result.replace("Extracted text from", "").strip()[:800]
+                                        if raw_text and not raw_text.startswith("Error"):
+                                            note_prompt = f"Summarize key factual findings from this extracted text into 1-2 ultra-concise bullet points:\n{raw_text}"
+                                            note_summary = controller._run_ollama(note_prompt, "llama3.1").strip()
+                                            if note_summary:
+                                                if "notes" not in self.session.local_storage:
+                                                    self.session.local_storage["notes"] = []
+                                                self.session.local_storage["notes"].append(note_summary)
+                                                
+                                                # If notes exceed 4 items, compact and merge them
+                                                if len(self.session.local_storage["notes"]) > 4:
+                                                    all_notes = "\n".join(self.session.local_storage["notes"])
+                                                    compact_prompt = f"Compact and deduplicate these session notes into a single cohesive bulleted summary:\n{all_notes}"
+                                                    compacted = controller._run_ollama(compact_prompt, "llama3.1").strip()
+                                                    if compacted:
+                                                        self.session.local_storage["notes"] = [compacted]
+                                                session_manager.save()
+                                                self.log_thought(f"📝 [Compacted Note Saved]:\n{note_summary}\n")
+                                    except Exception:
+                                        pass
                                 else:
                                     step_hint = f"[SYSTEM: Command succeeded! If '{step['name']}' is accomplished, output: {{\"action\": \"finish_step\", \"args\": {{\"message\": \"done\"}}}}]"
                             else:
@@ -512,12 +565,14 @@ class OpenClawAgent:
         self.log_thought("=== EXECUTION COMPLETE ===")
                 
         # 3. RESPOND
+        session_notes_str = "\n".join(self.session.local_storage.get("notes", [])) if self.session.local_storage.get("notes") else "None"
         system_persona = (
             "System: You are a helpful AI assistant running on the user's local machine, known as 'End Of Tokens'. "
             "You have just finished processing the user's request using your execution engine. "
             "NEVER say 'I am a language model' or 'I don't have the capability'. "
-            "CRITICAL: Do NOT output JSON in your final answer. Provide a natural, well-formatted Markdown response strictly summarizing the results from the execution context below.\n\n"
+            "CRITICAL: Do NOT output JSON in your final answer. Provide a natural, well-formatted Markdown response strictly summarizing the results from the execution context and session notes below.\n\n"
             f"User Request: {prompt}\n"
+            f"Compacted Session Notes:\n{session_notes_str}\n\n"
             f"Execution Context:\n{chr(10).join(execution_history)}"
         )
         

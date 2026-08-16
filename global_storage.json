@@ -1,22 +1,7 @@
 {
-    "mathematics": {
-        "basic_arithmetic": "+ operator returns the sum of two numbers."
-    },
     "system_settings": {
         "default_browser": "chromium"
     },
-    "trade_up_options": {
-        "cs2_trade_ups": [
-            "TradeUpSpy - The ultimate CS2 trade up platform",
-            "CS2 Trade-Up Database: Profitable Contracts",
-            "The MOST PROFITABLE Budget CS2 Trade Ups! (HUGE ...",
-            "These BUDGET CS2 Trade Ups are EXTREMELY ...",
-            "d] I calculated every 2-skin CS2 tradeup and their ...",
-            "d] I found some profitable trade-ups : r ...",
-            "CS2 trade-up profitability is generally low and high-risk"
-        ]
-    },
-    "product_comparison": {
-        "zeyphrus_g16_vs_proart_p16": "Asus ROG Zephyrus G16 and Asus ProArt P16 comparison: \n..."
-    }
+    "user_preferences": {},
+    "installed_apps": {}
 }
